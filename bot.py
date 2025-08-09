@@ -51,7 +51,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     # Очищаем старые данные
-    if user_id in user_
+    if user_id in user_data:
         del user_data[user_id]
 
     # Перемешиваем вопросы
@@ -120,7 +120,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
 
     # Проверяем, начат ли тест
-    if user_id not in user_
+    if user_id not in user_data:
         try:
             await query.edit_message_text("Тест не начат. Напиши /start")
         except:
@@ -160,7 +160,7 @@ async def end_test(context: ContextTypes.DEFAULT_TYPE):
     user_id = job.data  # получаем user_id из data
     chat_id = job.chat_id
 
-    if user_id not in user_
+    if user_id not in user_data:
         return
 
     data = user_data[user_id]
@@ -187,7 +187,7 @@ async def end_test(context: ContextTypes.DEFAULT_TYPE):
 # === Очистка данных пользователя ===
 async def cleanup_user(context: ContextTypes.DEFAULT_TYPE):
     user_id = context.job.data
-    if user_id in user_
+    if user_id in user_data:
         del user_data[user_id]
 
 
