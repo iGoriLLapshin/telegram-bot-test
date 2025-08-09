@@ -209,9 +209,19 @@ if __name__ == "__main__":
     print("✅ Бот запущен... Ждём команду /start")
 
     try:
-        application.run_polling()
+        application.run_polling(
+    allowed_updates=Update.ALL_TYPES,
+    drop_pending_updates=True,
+    timeout=20,
+    read_timeout=60,
+    write_timeout=60,
+    connect_timeout=60,
+    pool_timeout=60,
+    max_retries=3
+)
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
