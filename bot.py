@@ -191,26 +191,6 @@ async def cleanup_user(context: ContextTypes.DEFAULT_TYPE):
         del user_data[user_id]
 
 
-# === Веб-сервер, чтобы бот не "усыпали" (для Render) ===
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == "/health":
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"OK")
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-def run_health_server():
-    server = HTTPServer(('', 8000), HealthCheckHandler)
-    server.serve_forever()
-
-# Запускаем веб-сервер в фоне
-threading.Thread(target=run_health_server, daemon=True).start()
-
-
 # === Запуск бота ===
 async def main():
     # Получаем токен из переменной окружения
@@ -233,18 +213,6 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    asyncio.run(main())
 
-    try:
-        loop.run_until_complete(main())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        if hasattr(loop, 'shutdown_asyncgens'):
-            loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
 
