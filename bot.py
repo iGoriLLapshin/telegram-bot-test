@@ -119,8 +119,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
 
-    # Проверяем, начат ли тест
-    if user_id not in user_data:
+    if user_id not in user_
         try:
             await query.edit_message_text("Тест не начат. Напиши /start")
         except:
@@ -135,11 +134,19 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("⏰ Время вышло. Тест завершён.")
         return
 
+    # Проверим, не закончились ли вопросы
+    if data["index"] >= data["total_count"]:
+        try:
+            await query.edit_message_text("📝 Тест завершён. Все вопросы заданы.")
+        except:
+            await query.message.reply_text("📝 Тест завершён. Все вопросы заданы.")
+        return
+
     # Получаем ответ
     try:
-        chosen = int(query.data.split("_")[1])  # из 'ans_2' → 2
+        chosen = int(query.data.split("_")[1])
     except (IndexError, ValueError):
-        await query.edit_message_text("Ошибка при обработке ответа.")
+        await query.edit_message_text("❌ Ошибка при обработке ответа.")
         return
 
     # Проверяем правильность
@@ -150,7 +157,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Переходим к следующему вопросу
     data["index"] += 1
 
-    # Показываем следующий вопрос
+    # Показываем следующий вопрос (если ещё есть)
     await send_next_question(update, context, user_id)
 
 
@@ -227,6 +234,7 @@ if __name__ == "__main__":
         print("\nБот остановлен вручную.")
     except Exception as e:
         print(f"Критическая ошибка: {e}")
+
 
 
 
