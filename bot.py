@@ -119,7 +119,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
 
-    if user_id not in user_
+    if user_id not in user_data:
         try:
             await query.edit_message_text("Тест не начат. Напиши /start")
         except:
@@ -234,6 +234,7 @@ if __name__ == "__main__":
         print("\nБот остановлен вручную.")
     except Exception as e:
         print(f"Критическая ошибка: {e}")
+
 
 
 
