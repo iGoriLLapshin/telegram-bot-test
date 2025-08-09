@@ -222,12 +222,12 @@ if __name__ == "__main__":
         application.run_polling(
             allowed_updates=Update.ALL_TYPES,
             drop_pending_updates=True,
-            max_retries=3,
         )
     except KeyboardInterrupt:
         print("\nБот остановлен вручную.")
     except Exception as e:
         print(f"Критическая ошибка: {e}")
+
 
 
 
