@@ -191,28 +191,26 @@ async def cleanup_user(context: ContextTypes.DEFAULT_TYPE):
         del user_data[user_id]
 
 
-# === Запуск бота ===
-async def main():
-    # Получаем токен из переменной окружения
+# === Запуск бота (для Render) ===
+if __name__ == "__main__":
+    import os
+    import asyncio
+    from telegram.ext import Application
+
     token = os.getenv("BOT_TOKEN")
     if not token:
         print("❌ ОШИБКА: Не задан BOT_TOKEN в переменных окружения!")
-        return
+        exit(1)
 
-    # Создаём приложение
     application = Application.builder().token(token).build()
-
-    # Добавляем обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_click))
 
-    # Запускаем бота
     print("✅ Бот запущен... Ждём команду /start")
-    await application.run_polling()
 
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    try:
+        application.run_polling()
+    except KeyboardInterrupt:
+        print("\nБот остановлен.")
 
 
