@@ -194,33 +194,37 @@ async def cleanup_user(context: ContextTypes.DEFAULT_TYPE):
 # === Запуск бота (для Render) ===
 if __name__ == "__main__":
     import os
-    import asyncio
-    from telegram.ext import Application
+    from telegram.ext import Application, Request
 
     token = os.getenv("BOT_TOKEN")
     if not token:
         print("❌ ОШИБКА: Не задан BOT_TOKEN в переменных окружения!")
         exit(1)
 
-    application = Application.builder().token(token).build()
+    # Настраиваем Request с таймаутами
+    request = Request(
+        connect_timeout=10.0,   # Время подключения
+        read_timeout=30.0,      # Время ожидания данных
+        write_timeout=30.0,
+        pool_timeout=10.0
+    )
+
+    # Создаём приложение
+    application = Application.builder().token(token).request(request).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_click))
 
     print("✅ Бот запущен... Ждём команду /start")
 
-    try:
-        application.run_polling(
-    allowed_updates=Update.ALL_TYPES,
-    drop_pending_updates=True,
-    timeout=20,
-    read_timeout=60,
-    write_timeout=60,
-    connect_timeout=60,
-    pool_timeout=60,
-    max_retries=3
-)
+    # Запускаем polling с безопасными параметрами
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+        max_retries=3
+    )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
