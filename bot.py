@@ -203,8 +203,8 @@ if __name__ == "__main__":
 
     # Настраиваем Request с таймаутами
     request = Request(
-        connect_timeout=10.0,   # Время подключения
-        read_timeout=30.0,      # Время ожидания данных
+        connect_timeout=10.0,
+        read_timeout=30.0,
         write_timeout=30.0,
         pool_timeout=10.0
     )
@@ -217,13 +217,17 @@ if __name__ == "__main__":
     print("✅ Бот запущен... Ждём команду /start")
 
     # Запускаем polling с безопасными параметрами
-    application.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-        max_retries=3
-    )
+    try:
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,
+            max_retries=3
+        )
     except KeyboardInterrupt:
-        print("\nБот остановлен.")
+        print("\nБот остановлен вручную.")
+    except Exception as e:
+        print(f"Критическая ошибка: {e}")
+
 
 
 
