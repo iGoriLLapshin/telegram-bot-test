@@ -1,4 +1,4 @@
-# bot.py — Новый режим: 30 вопросов с пояснениями
+# bot.py — Новый режим: 10 вопросов с пояснениями
 
 import os
 import random
@@ -39,8 +39,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in user_data:
         del user_data[user_id]
 
-    # Выбираем 30 случайных вопросов
-    selected_questions = random.sample(questions, min(30, len(questions)))
+    # Выбираем 10 случайных вопросов
+    selected_questions = random.sample(questions, min(10, len(questions)))
 
     # Сохраняем состояние
     user_data[user_id] = {
@@ -71,7 +71,7 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
     try:
         if data["index"] == 0:
             await update.message.reply_text(
-                f"⏱ Начинаем! Всего 30 вопросов.\n\n{q['question']}",
+                f"⏱ Начинаем! Всего 10 вопросов.\n\n{q['question']}",
                 reply_markup=reply_markup
             )
         else:
@@ -218,6 +218,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
