@@ -71,7 +71,7 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
     try:
         if data["index"] == 0:
             await update.message.reply_text(
-                f"⏱ Начинаем! Всего 30 вопросов.\n\n{q['question']}",
+                f"⏱ Начинаем! Всего 10 вопросов.\n\n{q['question']}",
                 reply_markup=reply_markup
             )
         else:
@@ -206,6 +206,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
