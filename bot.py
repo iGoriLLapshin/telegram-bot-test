@@ -143,13 +143,13 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = query.from_user.id
-    if user_id not in user_data:
+    if user_id not in user_
         await query.edit_message_text("Тест не начат.")
         return
 
     data = user_data[user_id]
     data["index"] += 1
-    data["answered"] = False
+    data["answered"] = False  # ✅ Обязательно сбрасываем
 
     await send_next_question(update, context, user_id)
 
@@ -204,6 +204,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
