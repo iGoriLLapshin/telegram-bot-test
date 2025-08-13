@@ -58,7 +58,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # === Отправка следующего вопроса ===
 async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
     data = user_data[user_id]
-    if data["index"] >= data["total_count"] or data["timer_ended"]:
+    if data["index"] >= len(data["questions"]):
+        await show_results(update, context, user_id)
         return
 
     q = data["questions"][data["index"]]
@@ -70,7 +71,7 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
     try:
         if data["index"] == 0:
             await update.message.reply_text(
-                f"⏱ Начинаем! Всего 10 вопросов.\n\n{q['question']}",
+                f"⏱ Начинаем! Всего 30 вопросов.\n\n{q['question']}",
                 reply_markup=reply_markup
             )
         else:
@@ -86,6 +87,7 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
             text=f"Следующий вопрос:\n\n{q['question']}",
             reply_markup=reply_markup
         )
+
 
 
 # === Обработчик ответа ===
@@ -204,6 +206,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
