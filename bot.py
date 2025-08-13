@@ -58,8 +58,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # === Отправка следующего вопроса ===
 async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
     data = user_data[user_id]
-    if data["index"] >= len(data["questions"]):
-        await show_results(update, context, user_id)
+    if data["index"] >= data["total_count"] or data["timer_ended"]:
         return
 
     q = data["questions"][data["index"]]
@@ -205,6 +204,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
