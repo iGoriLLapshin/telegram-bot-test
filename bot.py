@@ -1,4 +1,4 @@
-# bot.py — Новый режим: 10 вопросов с пояснениями
+# bot.py — Telegram-бот: 10 вопросов с пояснениями
 
 import os
 import random
@@ -7,27 +7,34 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 
-# Импортируем вопросы
+# === Импортируем вопросы ===
 try:
     from questions import questions
 except ImportError:
     print("⚠️ Не найдён questions.py. Используем резервные вопросы.")
     questions = [
         {
-            "question": "Сколько будет 2+2?",
+            "question": "Сколько будет 2 + 2?",
             "options": ["3", "4", "5", "6"],
             "correct": 1,
-            "explanation": "2 + 2 = 4 — это базовая арифметика."
+            "explanation": "Потому что 2 + 2 = 4 по правилам арифметики."
         },
         {
             "question": "Столица Франции?",
             "options": ["Лондон", "Берлин", "Париж", "Мадрид"],
             "correct": 2,
-            "explanation": "Правильный ответ — Париж."
+            "explanation": "Париж — столица Франции с IX века."
+        },
+        {
+            "question": "Какой газ мы вдыхаем из воздуха?",
+            "options": ["Углекислый", "Азот", "Кислород", "Гелий"],
+            "correct": 2,
+            "explanation": "Кислород составляет около 21% атмосферы и нужен для дыхания."
         }
     ]
 
-# Храним данные пользователей
+
+# === Храним данные пользователей ===
 user_data = {}
 
 
@@ -39,7 +46,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in user_data:
         del user_data[user_id]
 
-    # Выбираем 10 случайных вопросов
+    # Выбираем 10 случайных вопросов (или меньше, если вопросов < 30)
     selected_questions = random.sample(questions, min(10, len(questions)))
 
     # Сохраняем состояние
@@ -61,6 +68,9 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
     if data["index"] >= len(data["questions"]):
         await show_results(update, context, user_id)
         return
+
+    # ✅ Сбрасываем флаг "ответил" перед новым вопросом
+    data["answered"] = False
 
     q = data["questions"][data["index"]]
     options = q["options"]
@@ -89,7 +99,6 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
         )
 
 
-
 # === Обработчик ответа ===
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -105,38 +114,49 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     data = user_data[user_id]
-    if data["timer_ended"]:
-        try:
-            await query.edit_message_text("⏰ Время вышло. Тест завершён.")
-        except:
-            await query.message.reply_text("⏰ Время вышло. Тест завершён.")
+    if data["index"] >= len(data["questions"]):
+        await show_results(update, context, user_id)
         return
 
-    # Проверим, не закончились ли вопросы
-    if data["index"] >= data["total_count"]:
-        try:
-            await query.edit_message_text("📝 Тест завершён. Все вопросы заданы.")
-        except:
-            await query.message.reply_text("📝 Тест завершён. Все вопросы заданы.")
+    if data["answered"]:
+        await query.edit_message_text("Вы уже ответили.")
         return
 
-    # Получаем ответ
     try:
         chosen = int(query.data.split("_")[1])
     except (IndexError, ValueError):
-        await query.edit_message_text("❌ Ошибка при обработке ответа.")
+        await query.edit_message_text("Ошибка при обработке ответа.")
         return
 
-    # Проверяем правильность
-    correct = data["questions"][data["index"]]["correct"]
+    q = data["questions"][data["index"]]
+    correct = q["correct"]
+
     if chosen == correct:
         data["correct_count"] += 1
+        data["answered"] = True
+        data["index"] += 1
+        await send_next_question(update, context, user_id)
+    else:
+        data["answered"] = True
+        explanation = q["explanation"]
+        keyboard = [[InlineKeyboardButton("➡️ Следующий вопрос", callback_data="next")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Переходим к следующему вопросу
-    data["index"] += 1
-
-    # Показываем следующий вопрос (если ещё есть)
-    await send_next_question(update, context, user_id)
+        try:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=update.callback_query.message.message_id,
+                text=f"❌ Неправильно.\n\nПравильный ответ: *{q['options'][correct]}*\n\n📌 Пояснение:\n{explanation}",
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+        except:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"❌ Неправильно.\n\nПравильный ответ: *{q['options'][correct]}*\n\n📌 Пояснение:\n{explanation}",
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
 
 
 # === Кнопка "Следующий вопрос" после ошибки ===
@@ -145,13 +165,13 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = query.from_user.id
-    if user_id not in user_
+    if user_id not in user_data:
         await query.edit_message_text("Тест не начат.")
         return
 
     data = user_data[user_id]
     data["index"] += 1
-    data["answered"] = False  # ✅ Обязательно сбрасываем
+    data["answered"] = False  # ✅ Сбрасываем перед новым вопросом
 
     await send_next_question(update, context, user_id)
 
@@ -173,13 +193,17 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f"🎉 Тест завершён!\n\n✅ Правильных: {correct} из {total}\n⏱ Время: {minutes} мин {seconds} сек\n\nСпасибо за участие!"
+            text=f"🎉 Тест завершён!\n\n"
+                 f"✅ Правильных: {correct} из {total}\n"
+                 f"⏱ Время: {minutes} мин {seconds} сек\n\n"
+                 f"Спасибо за участие!"
         )
     except:
         pass
 
     # Удаляем данные
-    del user_data[user_id]
+    if user_id in user_data:
+        del user_data[user_id]
 
 
 # === Запуск бота ===
@@ -206,26 +230,3 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
