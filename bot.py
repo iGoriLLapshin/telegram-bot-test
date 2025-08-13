@@ -97,58 +97,45 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
 
     if user_id not in user_data:
-        await query.edit_message_text("Тест не начат.")
+        try:
+            await query.edit_message_text("Тест не начат. Напиши /start")
+        except:
+            await query.message.reply_text("Тест не начат. Напиши /start")
         return
 
     data = user_data[user_id]
-    if data["index"] >= len(data["questions"]):
-        await show_results(update, context, user_id)
+    if data["timer_ended"]:
+        try:
+            await query.edit_message_text("⏰ Время вышло. Тест завершён.")
+        except:
+            await query.message.reply_text("⏰ Время вышло. Тест завершён.")
         return
 
-    # Проверяем, уже ответили
-    if data["answered"]:
-        await query.edit_message_text("Вы уже ответили.")
+    # Проверим, не закончились ли вопросы
+    if data["index"] >= data["total_count"]:
+        try:
+            await query.edit_message_text("📝 Тест завершён. Все вопросы заданы.")
+        except:
+            await query.message.reply_text("📝 Тест завершён. Все вопросы заданы.")
         return
 
     # Получаем ответ
     try:
         chosen = int(query.data.split("_")[1])
-    except:
-        await query.edit_message_text("Ошибка.")
+    except (IndexError, ValueError):
+        await query.edit_message_text("❌ Ошибка при обработке ответа.")
         return
 
-    q = data["questions"][data["index"]]
-    correct = q["correct"]
-
-    # Проверяем ответ
+    # Проверяем правильность
+    correct = data["questions"][data["index"]]["correct"]
     if chosen == correct:
         data["correct_count"] += 1
-        data["answered"] = True
-        # Правильно — сразу следующий вопрос
-        data["index"] += 1
-        await send_next_question(update, context, user_id)
-    else:
-        # Неправильно — показываем пояснение и кнопку
-        data["answered"] = True
-        explanation = q["explanation"]
-        keyboard = [[InlineKeyboardButton("➡️ Следующий вопрос", callback_data="next")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
 
-        try:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=update.callback_query.message.message_id,
-                text=f"❌ Неправильно.\n\nПравильный ответ: *{q['options'][correct]}*\n\n📌 Пояснение:\n{explanation}",
-                reply_markup=reply_markup,
-                parse_mode="Markdown"
-            )
-        except:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"❌ Неправильно.\n\nПравильный ответ: *{q['options'][correct]}*\n\n📌 Пояснение:\n{explanation}",
-                reply_markup=reply_markup,
-                parse_mode="Markdown"
-            )
+    # Переходим к следующему вопросу
+    data["index"] += 1
+
+    # Показываем следующий вопрос (если ещё есть)
+    await send_next_question(update, context, user_id)
 
 
 # === Кнопка "Следующий вопрос" после ошибки ===
@@ -218,6 +205,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
