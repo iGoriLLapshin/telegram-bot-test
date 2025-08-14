@@ -75,7 +75,12 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
     q = data["questions"][data["index"]]
     options = q["options"]
 
-    keyboard = [[InlineKeyboardButton(options[i], callback_data=f"ans_{i}") for i in range(4)]]
+    keyboard = [
+    [InlineKeyboardButton(options[0], callback_data="ans_0")],
+    [InlineKeyboardButton(options[1], callback_data="ans_1")],
+    [InlineKeyboardButton(options[2], callback_data="ans_2")],
+    [InlineKeyboardButton(options[3], callback_data="ans_3")]
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     try:
@@ -251,6 +256,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
