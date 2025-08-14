@@ -1,4 +1,5 @@
 # bot.py — Telegram-бот: 10 вопросов с пояснениями
+# Варианты ответов отображаются в тексте, кнопки — номера (1, 2, 3, 4)
 
 import os
 import random
@@ -46,7 +47,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in user_data:
         del user_data[user_id]
 
-    # Выбираем 10 случайных вопросов (или меньше, если вопросов < 30)
+    # Выбираем 10 случайных вопросов
     selected_questions = random.sample(questions, min(10, len(questions)))
 
     # Сохраняем состояние
@@ -69,37 +70,43 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
         await show_results(update, context, user_id)
         return
 
-    # ✅ Сбрасываем флаг "ответил" перед новым вопросом
+    # Сбрасываем флаг "ответил"
     data["answered"] = False
 
     q = data["questions"][data["index"]]
-    options = q["options"]
 
-    keyboard = [
-    [InlineKeyboardButton(options[0], callback_data="ans_0")],
-    [InlineKeyboardButton(options[1], callback_data="ans_1")],
-    [InlineKeyboardButton(options[2], callback_data="ans_2")],
-    [InlineKeyboardButton(options[3], callback_data="ans_3")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    # Формируем текст вопроса с вариантами
+    message_text = f"📝 Вопрос {data['index'] + 1} из {len(data['questions'])}:\n\n"
+    message_text += f"{q['question']}\n\n"
+    for i, option in enumerate(q["options"], start=1):
+        message_text += f"{i}. {option}\n"
+    message_text += "\n🔢 Выберите номер ответа:"
+
+    # Создаём кнопки с номерами (до 4 в строке)
+    buttons = []
+    row = []
+    for i in range(1, len(q["options"]) + 1):
+        row.append(InlineKeyboardButton(str(i), callback_data=f"ans_{i-1}"))
+        if len(row) == 4 or i == len(q["options"]):
+            buttons.append(row)
+            row = []
+    reply_markup = InlineKeyboardMarkup(buttons)
 
     try:
         if data["index"] == 0:
-            await update.message.reply_text(
-                f"⏱ Начинаем! Всего 10 вопросов.\n\n{q['question']}",
-                reply_markup=reply_markup
-            )
+            await update.message.reply_text(message_text, reply_markup=reply_markup)
         else:
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=update.callback_query.message.message_id,
-                text=f"✅ Отлично! Следующий вопрос:\n\n{q['question']}",
+                text=message_text,
                 reply_markup=reply_markup
             )
     except:
+        # Если не получилось отредактировать — отправляем новое сообщение
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f"Следующий вопрос:\n\n{q['question']}",
+            text=message_text,
             reply_markup=reply_markup
         )
 
@@ -113,70 +120,66 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if user_id not in user_data:
         try:
-            await query.edit_message_text("Тест не начат. Напиши /start")
+            await query.edit_message_text("Тест не начат. Напишите /start")
         except:
-            await query.message.reply_text("Тест не начат. Напиши /start")
+            await query.message.reply_text("Тест не начат. Напишите /start")
         return
 
     data = user_data[user_id]
-    if data["index"] >= len(data["questions"]):
+    if data["index"] >= len(data["questions"]) or data["answered"]:
         await show_results(update, context, user_id)
         return
 
-    if data["answered"]:
-        await query.edit_message_text("Вы уже ответили.")
-        return
-
     try:
-        chosen = int(query.data.split("_")[1])
+        chosen_index = int(query.data.split("_")[1])
     except (IndexError, ValueError):
-        await query.edit_message_text("Ошибка при обработке ответа.")
+        await query.edit_message_text("❌ Ошибка при обработке ответа.")
         return
 
     q = data["questions"][data["index"]]
-    correct = q["correct"]
+    correct_index = q["correct"]
 
-    if chosen == correct:
+    if chosen_index == correct_index:
         data["correct_count"] += 1
         data["answered"] = True
         data["index"] += 1
 
-        # ✅ Проверяем, закончились ли вопросы
         if data["index"] >= len(data["questions"]):
-            # Убираем кнопки с последнего сообщения
             try:
                 await context.bot.edit_message_reply_markup(
                     chat_id=update.effective_chat.id,
-                    message_id=update.callback_query.message.message_id,
+                    message_id=query.message.message_id,
                     reply_markup=None
                 )
             except:
-                pass  # если не получилось — не страшно
-
-            # Показываем результат
+                pass
             await show_results(update, context, user_id)
-            return  # ✅ Важно: выходим, чтобы не вызывать send_next_question
+            return
 
-        # Если вопросы ещё есть — показываем следующий
         await send_next_question(update, context, user_id)
     else:
         data["answered"] = True
         explanation = q["explanation"]
+        correct_option = q["options"][correct_index]
         keyboard = [[InlineKeyboardButton("➡️ Следующий вопрос", callback_data="next")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         try:
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
-                message_id=update.callback_query.message.message_id,
-                text=f"❌ Неправильно.\n\nПравильный ответ: *{q['options'][correct]}*\n\n📌 Пояснение:\n{explanation}",
+                message_id=query.message.message_id,
+                text=f"❌ Неправильно.\n\n"
+                     f"✅ Правильный ответ: {correct_index + 1}. *{correct_option}*\n\n"
+                     f"📌 Пояснение:\n{explanation}",
                 reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
         except:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f"❌ Неправильно.\n\nПравильный ответ: *{q['options'][correct]}*\n\n📌 Пояснение:\n{explanation}",
+                text=f"❌ Неправильно.\n\n"
+                     f"✅ Правильный ответ: {correct_index + 1}. *{correct_option}*\n\n"
+                     f"📌 Пояснение:\n{explanation}",
                 reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
@@ -195,14 +198,21 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = user_data[user_id]
     data["index"] += 1
 
-    # 🚨 Проверяем, закончились ли вопросы
     if data["index"] >= len(data["questions"]):
-        await query.edit_message_reply_markup(reply_markup=None)
+        try:
+            await context.bot.edit_message_reply_markup(
+                chat_id=update.effective_chat.id,
+                message_id=query.message.message_id,
+                reply_markup=None
+            )
+        except:
+            pass
         await show_results(update, context, user_id)
         return
 
     data["answered"] = False
     await send_next_question(update, context, user_id)
+
 
 # === Показ итогов ===
 async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
@@ -222,21 +232,18 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
             text=f"🎉 Тест завершён!\n\n"
                  f"✅ Правильных: {correct} из {total}\n"
                  f"⏱ Время: {minutes} мин {seconds} сек\n\n"
-                 f"Спасибо за участие!"
+                 f"👏 Отличная работа! Спасибо за участие!"
         )
     except:
         pass
 
-    # Удаляем данные
+    # Удаляем данные пользователя
     if user_id in user_data:
         del user_data[user_id]
 
 
 # === Запуск бота ===
 if __name__ == "__main__":
-    import os
-    from telegram.ext import Application
-
     token = os.getenv("BOT_TOKEN")
     if not token:
         print("❌ ОШИБКА: Не задан BOT_TOKEN в переменных окружения!")
@@ -256,7 +263,3 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
-
-
-
-
