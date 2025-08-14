@@ -200,7 +200,7 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_next_question(update, context, user_id)
 
 # === Показ итогов ===
-sync def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
+async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
     if user_id not in user_data:
         return
     data = user_data[user_id]
@@ -251,5 +251,6 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
