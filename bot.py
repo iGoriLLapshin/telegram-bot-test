@@ -135,6 +135,24 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data["correct_count"] += 1
         data["answered"] = True
         data["index"] += 1
+
+        # ✅ Проверяем, закончились ли вопросы
+        if data["index"] >= len(data["questions"]):
+            # Убираем кнопки с последнего сообщения
+            try:
+                await context.bot.edit_message_reply_markup(
+                    chat_id=update.effective_chat.id,
+                    message_id=update.callback_query.message.message_id,
+                    reply_markup=None
+                )
+            except:
+                pass  # если не получилось — не страшно
+
+            # Показываем результат
+            await show_results(update, context, user_id)
+            return  # ✅ Важно: выходим, чтобы не вызывать send_next_question
+
+        # Если вопросы ещё есть — показываем следующий
         await send_next_question(update, context, user_id)
     else:
         data["answered"] = True
@@ -171,10 +189,15 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     data = user_data[user_id]
     data["index"] += 1
-    data["answered"] = False  # ✅ Сбрасываем перед новым вопросом
 
+    # 🚨 Проверяем, закончились ли вопросы
+    if data["index"] >= len(data["questions"]):
+        await query.edit_message_reply_markup(reply_markup=None)
+        await show_results(update, context, user_id)
+        return
+
+    data["answered"] = False
     await send_next_question(update, context, user_id)
-
 
 # === Показ итогов ===
 async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -230,3 +253,4 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
