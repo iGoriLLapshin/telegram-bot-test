@@ -169,9 +169,8 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=update.effective_chat.id,
                 message_id=query.message.message_id,
                 text=f"❌ Неправильно.\n\n"
-                     f"❓ *Вопрос:*\n{i['question']}*\n\n"
-                     f"✅ *Правильный ответ:*\n{correct_index + 1}. *{correct_option}*\n\n"
-                     f"📌 *Пояснение:*\n{explanation}",
+                     f"✅ Правильный ответ: {correct_index + 1}. *{correct_option}*\n\n"
+                     f"📌 Пояснение:\n{explanation}",
                 reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
@@ -264,4 +263,5 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
