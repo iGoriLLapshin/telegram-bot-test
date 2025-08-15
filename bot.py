@@ -159,29 +159,37 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_next_question(update, context, user_id)
     else:
         data["answered"] = True
-        explanation = q["explanation"]
-        correct_option = q["options"][correct_index]
-        keyboard = [[InlineKeyboardButton("➡️ Следующий вопрос", callback_data="next")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+    q = data["questions"][data["index"]]
+    correct_index = q["correct"]
+    correct_option = q["options"][correct_index]
+    explanation = q["explanation"]
 
-        try:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=query.message.message_id,
-                text=f"❌ Неправильно.\n\n"
-                     f"✅ Правильный ответ: {correct_index + 1}. *{correct_option}*\n\n"
-                     f"📌 Пояснение:\n{explanation}",
-                reply_markup=reply_markup,
-                parse_mode="Markdown"
-            )
-        except:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"❌ Неправильно.\n\n"
-                     f"✅ Правильный ответ: {correct_index + 1}. *{correct_option}*\n\n"
-                     f"📌 Пояснение:\n{explanation}",
-                reply_markup=reply_markup,
-                parse_mode="Markdown"
+    # Формируем сообщение с ВОПРОСОМ + пояснением
+    feedback_text = (
+        f"❌ Неправильно.\n\n"
+        f"📌 *Вопрос:* {q['question']}\n\n"
+        f"✅ *Правильный ответ:* {correct_index + 1}. {correct_option}\n\n"
+        f"📘 *Пояснение:*\n{explanation}"
+    )
+
+    keyboard = [[InlineKeyboardButton("➡️ Следующий вопрос", callback_data="next")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    try:
+        await context.bot.edit_message_text(
+            chat_id=update.effective_chat.id,
+            message_id=query.message.message_id,
+            text=feedback_text,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        # Если не удалось отредактировать — отправляем новое сообщение
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=feedback_text,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
             )
 
 
@@ -263,3 +271,4 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
