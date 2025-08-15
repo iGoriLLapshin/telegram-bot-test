@@ -115,14 +115,7 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-        try:
-            await context.bot.edit_message_reply_markup(
-                chat_id=update.effective_chat.id,
-                message_id=query.message.message_id,
-                reply_markup=None
-            )
-        except Exception as e:
-            pass  # игнорируем, если сообщение уже изменено
+
     user_id = query.from_user.id
 
     if user_id not in user_data:
@@ -136,7 +129,18 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data["index"] >= len(data["questions"]) or data["answered"]:
         await show_results(update, context, user_id)
         return
-
+        
+# === Убираем кнопки сразу после нажатия (защита от дублей) ===
+    try:
+        await context.bot.edit_message_reply_markup(
+            chat_id=update.effective_chat.id,
+            message_id=query.message.message_id,
+            reply_markup=None
+        )
+    except Exception as e:
+        pass  # Игнорируем ошибки (например, если сообщение уже изменено)
+        
+    # === Получаем выбранный ответ ===
     try:
         chosen_index = int(query.data.split("_")[1])
     except (IndexError, ValueError):
@@ -278,5 +282,6 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
