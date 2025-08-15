@@ -110,6 +110,11 @@ async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE,
             reply_markup=reply_markup
         )
 
+# === Обработчик "Пройти заново" ===
+async def restart_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()  # убираем "часики"
+    await start(query, context)  # просто перезапускаем тест
 
 # === Обработчик ответа ===
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -297,6 +302,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
