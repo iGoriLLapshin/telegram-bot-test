@@ -12,7 +12,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 try:
     from questions import questions
 except ImportError:
-    print("⚠️ Не найдён questions.py. Используем резервные вопросы.")
+    print("⚠️ Не найдён questions.py. Используем резервные вопросы.") 
     questions = [
         {
             "question": "Сколько будет 2 + 2?",
@@ -292,6 +292,7 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_click, pattern="^ans_"))
     application.add_handler(CallbackQueryHandler(next_question, pattern="^next$"))
+    application.add_handler(CallbackQueryHandler(restart_test, pattern="^restart$"))
 
     print("✅ Бот запущен... Ждём /start")
 
@@ -302,6 +303,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
