@@ -40,6 +40,10 @@ user_data = {}
 
 
 # === Обработчик /start ===
+await update.message.reply_text(
+    f"🎯 Начинаем тест из {len(selected_questions)} вопросов!\n"
+    "Отвечайте честно — и получите полезные пояснения."
+)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
@@ -303,6 +307,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
