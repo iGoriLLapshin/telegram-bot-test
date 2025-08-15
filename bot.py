@@ -230,21 +230,43 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
     if user_id not in user_data:
         return
+
     data = user_data[user_id]
     correct = data["correct_count"]
     total = len(data["questions"])
     elapsed = int(time.time() - data["start_time"])
-
     minutes = elapsed // 60
     seconds = elapsed % 60
+
+    # --- Оценка уровня ---
+    if correct >= total * 0.9:
+        level = "🏅 Профессионал! Вы отлично чувствуете клиента."
+    elif correct >= total * 0.7:
+        level = "📈 Хороший уровень. Есть над чем поработать."
+    else:
+        level = "🌱 Начинающий. Повторите ключевые принципы коммуникации."
+
+    # Текст результата
+    result_text = (
+        f"🎉 Тест завершён!\n\n"
+        f"✅ Правильных: {correct} из {total}\n"
+        f"⏱ Время: {minutes} мин {seconds} сек\n\n"
+        f"{level}"
+    )
+
+    # --- Кнопки: "Пройти заново" и "Поделиться" ---
+    keyboard = [
+        [InlineKeyboardButton("🔁 Пройти заново", callback_data="restart")],
+        [InlineKeyboardButton("📤 Поделиться результатом", switch_inline_query=f"Я набрал {correct}/{total} в тренажёре переговоров!")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
     try:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f"🎉 Тест завершён!\n\n"
-                 f"✅ Правильных: {correct} из {total}\n"
-                 f"⏱ Время: {minutes} мин {seconds} сек\n\n"
-                 f"👏 Отличная работа! Спасибо за участие!"
+            text=result_text,
+            reply_markup=reply_markup,
+            parse_mode=None
         )
     except:
         pass
@@ -275,6 +297,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
