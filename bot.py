@@ -270,6 +270,8 @@ if __name__ == "__main__":
     if not token:
         print("❌ ОШИБКА: Не задан BOT_TOKEN в переменных окружения!")
         exit(1)
+    # Запускаем веб-сервер
+    keep_alive()
 
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
@@ -303,6 +305,7 @@ def run():
 def keep_alive():
     t = Thread(target=run)
     t.start()
+
 
 
 
