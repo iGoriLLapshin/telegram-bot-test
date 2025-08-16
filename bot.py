@@ -1,5 +1,5 @@
-# bot.py — Telegram-бот: 10 вопросов с пояснениями
-# Варианты ответов отображаются в тексте, кнопки — номера (1, 2, 3, 4)
+# bot.py — Telegram-бот: 20 вопросов с пояснениями
+# Варианты ответов — кнопки с номерами (1, 2, 3, 4)
 
 import os
 import random
@@ -12,7 +12,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 try:
     from questions import questions
 except ImportError:
-    print("⚠️ Не найдён questions.py. Используем резервные вопросы.") 
+    print("⚠️ Не найдён questions.py. Используем резервные вопросы.")
     questions = [
         {
             "question": "Сколько будет 2 + 2?",
@@ -59,34 +59,33 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "answered": False
     }
 
-    # Отправляем первое сообщение ТОЛЬКО если update.message существует
+    # Отправляем приветствие, только если это /start (а не перезапуск)
     if update.message:
         await update.message.reply_text(
             f"🎯 Начинаем тест из {len(selected_questions)} вопросов!\n"
             "Отвечайте честно — и получите полезные пояснения."
         )
-        # Затем отправляем первый вопрос
-        await send_next_question(update, context, user_id)
-    elif update.callback_query:
-        # Если вызвано из кнопки — просто отправляем следующий вопрос
-        await send_next_question(update, context, user_id)
-    else:
-        # На всякий случай — просто начнём вопрос
-        await send_next_question(update, context, user_id)
 
-    # Сбрасываем флаг "ответил"
+    # Задаём первый вопрос
+    await send_next_question(update, context, user_id)
+
+
+# === Отправка следующего вопроса ===
+async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
+    data = user_data[user_id]
+    if data["index"] >= len(data["questions"]):
+        await show_results(update, context, user_id)
+        return
+
     data["answered"] = False
-
     q = data["questions"][data["index"]]
 
-    # Формируем текст вопроса с вариантами
     message_text = f"📝 Вопрос {data['index'] + 1} из {len(data['questions'])}:\n\n"
     message_text += f"{q['question']}\n\n"
     for i, option in enumerate(q["options"], start=1):
         message_text += f"{i}. {option}\n"
     message_text += "\n🔢 Выберите номер ответа:"
 
-    # Создаём кнопки с номерами (до 4 в строке)
     buttons = []
     row = []
     for i in range(1, len(q["options"]) + 1):
@@ -97,7 +96,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(buttons)
 
     try:
-        if data["index"] == 0:
+        if data["index"] == 0 and update.message:
             await update.message.reply_text(message_text, reply_markup=reply_markup)
         else:
             await context.bot.edit_message_text(
@@ -107,27 +106,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=reply_markup
             )
     except:
-        # Если не получилось отредактировать — отправляем новое сообщение
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=message_text,
             reply_markup=reply_markup
         )
 
-# === Обработчик "Пройти заново" ===
-async def restart_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()  # убираем "часики"
-    await start(update, context)  # просто перезапускаем тест
 
 # === Обработчик ответа ===
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()  # Отвечаем на callback
+    await query.answer()
 
     user_id = query.from_user.id
 
-    # Проверяем, начат ли тест
     if user_id not in user_data:
         try:
             await query.edit_message_text("Тест не начат. Напишите /start")
@@ -136,13 +128,11 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     data = user_data[user_id]
-
-    # Защита: если уже ответили или тест закончен
     if data["index"] >= len(data["questions"]) or data["answered"]:
         await show_results(update, context, user_id)
         return
 
-    # Убираем кнопки после нажатия
+    # Убираем кнопки сразу после нажатия
     try:
         await context.bot.edit_message_reply_markup(
             chat_id=update.effective_chat.id,
@@ -152,7 +142,6 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
-    # Получаем индекс выбранного ответа
     try:
         chosen_index = int(query.data.split("_")[1])
     except (IndexError, ValueError):
@@ -163,7 +152,6 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     correct_index = q["correct"]
 
     if chosen_index == correct_index:
-        # Правильный ответ
         data["correct_count"] += 1
         data["answered"] = True
         data["index"] += 1
@@ -174,7 +162,6 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await send_next_question(update, context, user_id)
     else:
-        # Неправильный ответ
         data["answered"] = True
         correct_option = q["options"][correct_index]
         explanation = q["explanation"]
@@ -213,26 +200,25 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
     if user_id not in user_data:
-        await query.edit_message_text("Тест не начат.")
+        await query.edit_message_text("Тест не начат. Напишите /start")
         return
 
     data = user_data[user_id]
     data["index"] += 1
+    data["answered"] = False
 
     if data["index"] >= len(data["questions"]):
-        try:
-            await context.bot.edit_message_reply_markup(
-                chat_id=update.effective_chat.id,
-                message_id=query.message.message_id,
-                reply_markup=None
-            )
-        except:
-            pass
         await show_results(update, context, user_id)
         return
 
-    data["answered"] = False
     await send_next_question(update, context, user_id)
+
+
+# === Обработчик "Пройти заново" ===
+async def restart_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await start(update, context)  # передаём update — start сам разберётся
 
 
 # === Показ итогов ===
@@ -247,7 +233,7 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
     minutes = elapsed // 60
     seconds = elapsed % 60
 
-    # --- Оценка уровня ---
+    # Оценка уровня
     if correct >= total * 0.9:
         level = "🏅 Профессионал! Вы отлично чувствуете клиента."
     elif correct >= total * 0.7:
@@ -255,7 +241,6 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
     else:
         level = "🌱 Начинающий. Повторите ключевые принципы коммуникации."
 
-    # Текст результата
     result_text = (
         f"🎉 Тест завершён!\n\n"
         f"✅ Правильных: {correct} из {total}\n"
@@ -263,7 +248,7 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
         f"{level}"
     )
 
-    # --- Кнопки: "Пройти заново" и "Поделиться" ---
+    # Кнопки: Пройти заново + Поделиться
     keyboard = [
         [InlineKeyboardButton("🔁 Пройти заново", callback_data="restart")],
         [InlineKeyboardButton("📤 Поделиться результатом", switch_inline_query=f"Я набрал {correct}/{total} в тренажёре переговоров!")]
@@ -280,7 +265,7 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
     except:
         pass
 
-    # Удаляем данные пользователя
+    # Удаляем данные
     if user_id in user_data:
         del user_data[user_id]
 
@@ -307,15 +292,3 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
-
-
-
-
-
-
-
-
-
-
-
-
