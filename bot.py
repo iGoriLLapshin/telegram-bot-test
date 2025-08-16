@@ -61,7 +61,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     # Очищаем старые данные
-    if user_id in user_
+    if user_id in user_data:
         del user_data[user_id]
 
     # Выбираем 20 случайных вопросов
@@ -137,7 +137,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
 
-    if user_id not in user_
+    if user_id not in user_data:
         try:
             await query.edit_message_text("Тест не начат. Напишите /start")
         except:
@@ -216,7 +216,7 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = query.from_user.id
-    if user_id not in user_
+    if user_id not in user_data:
         await query.edit_message_text("Тест не начат. Напишите /start")
         return
 
@@ -240,7 +240,7 @@ async def restart_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # === Показ итогов ===
 async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
-    if user_id not in user_
+    if user_id not in user_data:
         return
 
     data = user_data[user_id]
@@ -283,7 +283,7 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
         pass
 
     # Удаляем данные
-    if user_id in user_
+    if user_id in user_data:
         del user_data[user_id]
 
 
@@ -316,6 +316,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
