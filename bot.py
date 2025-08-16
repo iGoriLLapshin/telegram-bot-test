@@ -1,11 +1,28 @@
-# bot.py — Telegram-бот: 10 вопросов с пояснениями
-# Варианты ответов — кнопки с номерами (1, 2, 3, 4)
+# bot.py — Telegram-бот: 20 вопросов с пояснениями
+# Запускается на Render.com с keep-alive через Flask
 
 import os
 import random
 import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+
+# === Добавляем Flask для keep-alive (чтобы бот не засыпал на Render) ===
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return '<b>Бот работает!</b>'
+
+def run():
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 
 # === Импортируем вопросы ===
@@ -19,6 +36,12 @@ except ImportError:
             "options": ["3", "4", "5", "6"],
             "correct": 1,
             "explanation": "Потому что 2 + 2 = 4 по правилам арифметики."
+        },
+        {
+            "question": "Столица Франции?",
+            "options": ["Лондон", "Берлин", "Париж", "Мадрид"],
+            "correct": 2,
+            "explanation": "Париж — столица Франции с IX века."
         },
         {
             "question": "Какой газ мы вдыхаем из воздуха?",
@@ -38,11 +61,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     # Очищаем старые данные
-    if user_id in user_data:
+    if user_id in user_
         del user_data[user_id]
 
-    # Выбираем 10 случайных вопросов
-    selected_questions = random.sample(questions, min(10, len(questions)))
+    # Выбираем 20 случайных вопросов
+    selected_questions = random.sample(questions, min(20, len(questions)))
 
     # Сохраняем состояние
     user_data[user_id] = {
@@ -57,7 +80,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         await update.message.reply_text(
             f"🎯 Начинаем тест из {len(selected_questions)} вопросов!\n"
-            "Выберете один из вариантов ответа."
+            "Отвечайте честно — и получите полезные пояснения."
         )
 
     # Задаём первый вопрос
@@ -114,7 +137,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
 
-    if user_id not in user_data:
+    if user_id not in user_
         try:
             await query.edit_message_text("Тест не начат. Напишите /start")
         except:
@@ -193,7 +216,7 @@ async def next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = query.from_user.id
-    if user_id not in user_data:
+    if user_id not in user_
         await query.edit_message_text("Тест не начат. Напишите /start")
         return
 
@@ -217,7 +240,7 @@ async def restart_test(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # === Показ итогов ===
 async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
-    if user_id not in user_data:
+    if user_id not in user_
         return
 
     data = user_data[user_id]
@@ -260,7 +283,7 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
         pass
 
     # Удаляем данные
-    if user_id in user_data:
+    if user_id in user_
         del user_data[user_id]
 
 
@@ -270,10 +293,14 @@ if __name__ == "__main__":
     if not token:
         print("❌ ОШИБКА: Не задан BOT_TOKEN в переменных окружения!")
         exit(1)
-    # Запускаем веб-сервер
+
+    # Запускаем веб-сервер для keep-alive (чтобы Render не "спал")
     keep_alive()
 
+    # Создаём приложение
     application = Application.builder().token(token).build()
+
+    # Добавляем хендлеры
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_click, pattern="^ans_"))
     application.add_handler(CallbackQueryHandler(next_question, pattern="^next$"))
@@ -281,6 +308,7 @@ if __name__ == "__main__":
 
     print("✅ Бот запущен... Ждём /start")
 
+    # Запускаем polling
     try:
         application.run_polling(
             allowed_updates=["callback_query", "message"],
@@ -288,23 +316,6 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
-        
-# === Веб-сервер для keep-alive ===
-from flask import Flask
-from threading import Thread
-
-app = Flask('')
-
-@app.route('/')
-def home():
-    return 'Бот работает!'
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
 
 
 
