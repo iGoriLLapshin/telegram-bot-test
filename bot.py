@@ -47,8 +47,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in user_data:
         del user_data[user_id]
 
-    # Выбираем 10 случайных вопросов
-    selected_questions = random.sample(questions, min(10, len(questions)))
+    # Выбираем 20 случайных вопросов
+    selected_questions = random.sample(questions, min(20, len(questions)))
 
     # Сохраняем состояние
     user_data[user_id] = {
@@ -58,21 +58,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "start_time": time.time(),
         "answered": False
     }
-    await update.message.reply_text(
-    f"🎯 Начинаем тест из {len(selected_questions)} вопросов!\n"
-    "Отвечайте честно — и получите полезные пояснения."
-    )
 
-    # Задаём первый вопрос
-    await send_next_question(update, context, user_id)
-
-
-# === Отправка следующего вопроса ===
-async def send_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
-    data = user_data[user_id]
-    if data["index"] >= len(data["questions"]):
-        await show_results(update, context, user_id)
-        return
+    # Отправляем первое сообщение ТОЛЬКО если update.message существует
+    if update.message:
+        await update.message.reply_text(
+            f"🎯 Начинаем тест из {len(selected_questions)} вопросов!\n"
+            "Отвечайте честно — и получите полезные пояснения."
+        )
+        # Затем отправляем первый вопрос
+        await send_next_question(update, context, user_id)
+    elif update.callback_query:
+        # Если вызвано из кнопки — просто отправляем следующий вопрос
+        await send_next_question(update, context, user_id)
+    else:
+        # На всякий случай — просто начнём вопрос
+        await send_next_question(update, context, user_id)
 
     # Сбрасываем флаг "ответил"
     data["answered"] = False
@@ -307,6 +307,7 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
 
 
