@@ -41,8 +41,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in user_data:
         del user_data[user_id]
 
-    # Выбираем 20 случайных вопросов
-    selected_questions = random.sample(questions, min(20, len(questions)))
+    # Выбираем 10 случайных вопросов
+    selected_questions = random.sample(questions, min(10, len(questions)))
 
     # Сохраняем состояние
     user_data[user_id] = {
@@ -57,7 +57,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         await update.message.reply_text(
             f"🎯 Начинаем тест из {len(selected_questions)} вопросов!\n"
-            "Отвечайте честно — и получите полезные пояснения."
+            "Выберете один из вариантов ответа."
         )
 
     # Задаём первый вопрос
@@ -286,4 +286,5 @@ if __name__ == "__main__":
         )
     except KeyboardInterrupt:
         print("\nБот остановлен.")
+
 
